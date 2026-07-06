@@ -1,0 +1,16 @@
+# Baseline replication of Sende, Saha & Uwimbabazi (2025) poverty-clustering pipeline.
+# Pinned to widely-available, mutually-compatible versions (Python 3.10-3.12).
+
+numpy>=1.24,<2.2
+pandas>=2.0
+scipy>=1.10
+scikit-learn>=1.4          # StackingClassifier, KNNImputer, PCA, KMeans
+torch>=2.1                 # neural-network base learner
+skorch>=0.15               # sklearn-compatible wrapper around the PyTorch module
+matplotlib>=3.7            # learning-curve / diagnostic plots
+openpyxl>=3.1             # Excel export of experiment results
+joblib>=1.3
+
+# Optional: enables an XGBoost base learner (mirrors H2O's XGBoost family).
+# The pipeline degrades gracefully to GradientBoosting if this is absent.
+xgboost>=2.0 ; platform_system != "Darwin" or platform_machine != "arm64"

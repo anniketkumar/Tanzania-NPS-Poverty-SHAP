@@ -1,0 +1,6 @@
+# Ignore everything at root level
+/*
+
+# Except the baseline_replication folder and this .gitignore
+!/.gitignore
+!/baseline_replication/

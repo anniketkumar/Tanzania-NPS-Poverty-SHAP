@@ -1,0 +1,63 @@
+# ── Python cache ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Virtual environments ─────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Generated outputs (re-creatable by running the pipeline) ─
+outputs/
+
+# ── Data files (too large / sensitive for GitHub) ─────────────
+data/*.csv
+data/*.xlsx
+data/*.xls
+data/*.dta
+data/*.parquet
+data/*.feather
+data/*.h5
+data/*.hdf5
+data/*.sav
+data/*.sas7bdat
+data/*.pkl
+data/*.pickle
+data/*.zip
+data/*.gz
+data/*.tar
+data/*.7z
+
+# ── Jupyter / IPython ────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── IDE / Editor artifacts ───────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── OS junk ──────────────────────────────────────────────────
+desktop.ini
+ehthumbs.db
+
+# ── Distribution / Packaging ────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+
+# ── pytest / coverage ───────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── mypy ────────────────────────────────────────────────────
+.mypy_cache/
