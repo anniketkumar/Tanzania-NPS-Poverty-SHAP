@@ -6,7 +6,7 @@ couple of seeds with a tiny, fast network. It's just a wiring check: does the
 whole thing run and produce sensible numbers? I run this before pointing the
 pipeline at the real wave-4 data so I catch plumbing bugs early.
 
-    python -m aniket_code.smoke_test
+    python -m baseline_replication.smoke_test
 """
 
 from __future__ import annotations

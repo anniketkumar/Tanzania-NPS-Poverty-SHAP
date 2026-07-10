@@ -1,10 +1,10 @@
 """Command-line entry point: build a wave, run the pipeline, save the results.
 
-Run it from the project root (the folder that holds `aniket_code/`):
+Run it from the project root (the folder that holds `baseline_replication/`):
 
-    python -m aniket_code.run_baseline --wave 4
-    python -m aniket_code.run_baseline --wave 5 --k 2
-    python -m aniket_code.run_baseline --wave 4 --seeds 5     # quick 5-seed run
+    python -m baseline_replication.run_baseline --wave 4
+    python -m baseline_replication.run_baseline --wave 5 --k 2
+    python -m baseline_replication.run_baseline --wave 4 --seeds 5     # quick 5-seed run
 
 The data loading is wired up for Waves 4 and 5. To use another wave I'd need to
 update the column mappings in `data/feature_spec.py`.

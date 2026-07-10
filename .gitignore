@@ -1,6 +1,13 @@
 # Ignore everything at root level
 /*
 
-# Except the baseline_replication folder and this .gitignore
+# Except these folders and .gitignore
 !/.gitignore
 !/baseline_replication/
+!/shap_analysis/
+
+# Python bytecode
+__pycache__/
+
+# Generated outputs (large data/plots)
+shap_analysis/outputs/

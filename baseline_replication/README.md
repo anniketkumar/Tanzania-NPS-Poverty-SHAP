@@ -27,19 +27,19 @@ Reduction is **PCA only** — that's what my source uses.
 ## Quick start
 
 ```bash
-# from the project root (the folder that contains aniket_code/)
-pip install -r aniket_code/requirements.txt
+# from the project root (the folder that contains baseline_replication/)
+pip install -r baseline_replication/requirements.txt
 
 # 1) verify the wiring on synthetic data (seconds, no NPS files needed)
-python -m aniket_code.smoke_test
+python -m baseline_replication.smoke_test
 
 # 2) run the real replication on wave 4 (or 5)
-python -m aniket_code.run_baseline --wave 4            # all 20 seeds
-python -m aniket_code.run_baseline --wave 4 --seeds 3  # quick 3-seed run
+python -m baseline_replication.run_baseline --wave 4            # all 20 seeds
+python -m baseline_replication.run_baseline --wave 4 --seeds 3  # quick 3-seed run
 ```
 
 Results (per-seed metrics, aggregate mean±std, confusion matrices, the config
-used) land in `aniket_code/outputs/experimental_summary.xlsx`, plus a
+used) land in `baseline_replication/outputs/experimental_summary.xlsx`, plus a
 `learning_curve.png`.
 
 **On this machine:** the smoke test passes; wave 4 assembles **3,352 households

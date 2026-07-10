@@ -47,14 +47,15 @@ class MLPModule(nn.Module):
 
 
 class SoftmaxNeuralNetClassifier(NeuralNetClassifier):
-    """A skorch classifier that turns the network's logits into probabilities."""
+    """skorch classifier whose predict_proba returns true probabilities.
 
-    def predict_proba(self, X):
-        # skorch's predict_proba just returns the forward pass, which for this
-        # model is raw logits. Run softmax over them to get real probabilities.
-        logits = super().predict_proba(X)
-        logits_t = torch.as_tensor(logits, dtype=torch.float32)
-        return F.softmax(logits_t, dim=-1).numpy()
+    As of skorch >= 0.12, the base NeuralNetClassifier.predict_proba()
+    already applies softmax to the network's raw logits, so no manual
+    softmax is needed.  This subclass exists only as a named type for
+    clarity and to document the intent.
+    """
+
+    pass
 
 
 def build_nn_classifier(

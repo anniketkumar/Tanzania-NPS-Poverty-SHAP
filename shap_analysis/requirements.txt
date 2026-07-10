@@ -1,0 +1,6 @@
+# Week-3 SHAP layer. Reuses the locked baseline pipeline, so pull its pins first:
+-r ../baseline_replication/requirements.txt
+
+# Added for this phase:
+shap>=0.44          # KernelExplainer (model-agnostic; the stack has an MLP + logistic meta)
+seaborn>=0.12       # annotated zone-importance heatmap

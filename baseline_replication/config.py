@@ -20,7 +20,7 @@ from pathlib import Path
 # Paths                                                                        #
 # --------------------------------------------------------------------------- #
 
-# Repository root = the folder that contains both `aniket_code/` and `converted data/`.
+# Repository root = the folder that contains both `baseline_replication/` and `converted data/`.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONVERTED_DATA_DIR = PROJECT_ROOT / "converted data"
 OUTPUT_DIR = Path(__file__).resolve().parent / "outputs"

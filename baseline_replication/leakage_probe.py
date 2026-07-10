@@ -17,12 +17,12 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
 
-from aniket_code.config import default_config
-from aniket_code.data import build_design_matrix, load_wave_features
-from aniket_code.pipeline.imputation import build_imputer
-from aniket_code.pipeline.reduction import build_reducer
-from aniket_code.pipeline.clustering import fit_clusterer
-from aniket_code.pipeline.stacking import build_stacking_classifier
+from baseline_replication.config import default_config
+from baseline_replication.data import build_design_matrix, load_wave_features
+from baseline_replication.pipeline.imputation import build_imputer
+from baseline_replication.pipeline.reduction import build_reducer
+from baseline_replication.pipeline.clustering import fit_clusterer
+from baseline_replication.pipeline.stacking import build_stacking_classifier
 
 
 def _prep(cfg, X_tr, X_te, seed):
