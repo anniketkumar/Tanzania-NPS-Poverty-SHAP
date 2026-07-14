@@ -1,7 +1,7 @@
 """One-off diagnostic: is the ~99% accuracy real, or an artifact of the
 K-Means-label circularity? Not part of the pipeline; safe to delete.
 
-It runs four checks on the real wave-4 data:
+It runs four checks on one wave's real data (default wave 4; pass --wave 3/5):
   A. Proper pipeline (fit imputer/PCA/K-Means on TRAIN only): train vs test gap.
   B. Same, but the classifier sees the 2 PCA coords K-Means used ("reduced").
   C. Proper stratified 5-fold CV, regenerating the K-Means label inside each
@@ -13,6 +13,7 @@ It runs four checks on the real wave-4 data:
 
 from __future__ import annotations
 
+import argparse
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
@@ -47,14 +48,19 @@ def _fit_clf(cfg, X_tr, y_tr, seed):
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Leakage / circularity probe.")
+    ap.add_argument("--wave", type=int, default=4, choices=[3, 4, 5])
+    args = ap.parse_args()
+
     cfg = default_config()
+    cfg.data.wave = args.wave
     # Trim the NN so this probe finishes quickly; still the full 5-learner stack.
     cfg.nn.max_epochs = 15
 
-    raw = load_wave_features(cfg.data.converted_data_dir, 4, True)
+    raw = load_wave_features(cfg.data.converted_data_dir, args.wave, True)
     design = build_design_matrix(raw)
     X = design.to_numpy(dtype=float)
-    print(f"wave 4 design matrix: {X.shape[0]} households x {X.shape[1]} cols\n")
+    print(f"wave {args.wave} design matrix: {X.shape[0]} households x {X.shape[1]} cols\n")
 
     seeds = [42, 43, 44]
 

@@ -6,8 +6,9 @@ Run it from the project root (the folder that holds `baseline_replication/`):
     python -m baseline_replication.run_baseline --wave 5 --k 2
     python -m baseline_replication.run_baseline --wave 4 --seeds 5     # quick 5-seed run
 
-The data loading is wired up for Waves 4 and 5. To use another wave I'd need to
-update the column mappings in `data/feature_spec.py`.
+The data loading is wired up for Waves 3, 4 and 5. Wave 3 value codes are
+harmonized to the W4/W5 reference scheme in `data/harmonize.py`. Each wave writes
+to its own output files (experimental_summary_wave{N}.xlsx / learning_curve_wave{N}.png).
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from .pipeline import run_experiment
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Baseline poverty-clustering pipeline.")
-    p.add_argument("--wave", type=int, default=4, choices=[4, 5])
+    p.add_argument("--wave", type=int, default=4, choices=[3, 4, 5])
     p.add_argument("--reducer", default=None,
                    choices=["pca", "none"],
                    help="Override the reduction method (pca, or none to skip it).")
@@ -37,6 +38,9 @@ def parse_args(argv=None):
 def build_config_from_args(args):
     cfg = default_config()
     cfg.data.wave = args.wave
+    # Per-wave output filenames so running one wave doesn't overwrite another's
+    # results (the old fixed names shared a single file across waves).
+    cfg.experiment.excel_out = f"experimental_summary_wave{args.wave}.xlsx"
     if args.reducer is not None:
         cfg.reduction.method = args.reducer
     if args.k is not None:

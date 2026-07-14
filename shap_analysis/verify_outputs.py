@@ -1,6 +1,6 @@
 """Step-4 sanity check: internal consistency + SHAP additivity.
 
-Run AFTER `run_shap.py` has produced the wave-4/5 artifacts. It re-derives the
+Run AFTER `run_shap.py` has produced the wave-3/4/5 artifacts. It re-derives the
 model deterministically (seed 42, same as the deliverable run) and checks:
 
   (a) every zone_importance_*.xlsx carries an `n_households` column and no zone
@@ -110,7 +110,7 @@ def check_wave(wave: int) -> dict:
 
 def main() -> int:
     all_ok = True
-    for wave in (4, 5):
+    for wave in (3, 4, 5):
         r = check_wave(wave)
         print(f"\n===== Wave {wave} =====")
         print(f"  n_households per zone (main):  {r.get('main_n_per_zone')}")

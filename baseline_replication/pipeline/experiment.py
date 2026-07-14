@@ -26,6 +26,11 @@ from dataclasses import asdict
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import (
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    silhouette_score,
+)
 from sklearn.model_selection import train_test_split
 
 from ..config import Config
@@ -81,6 +86,20 @@ def run_single_seed(design: pd.DataFrame, y_ext, cfg: Config, seed: int) -> dict
     y_tr_clust = clusterer.predict(X_tr_red)
     y_te_clust = clusterer.predict(X_te_red)
 
+    # ---- Cluster-validity indices (on the reduced TRAIN space) ---------- #
+    # These measure how separated the K-Means clusters are, independent of the
+    # classifier. Computed on the same space K-Means used (train, reduced).
+    # Higher silhouette / Calinski-Harabasz = better; lower Davies-Bouldin = better.
+    cluster_quality = {"silhouette": float("nan"),
+                       "calinski_harabasz": float("nan"),
+                       "davies_bouldin": float("nan")}
+    if len(np.unique(y_tr_clust)) > 1:
+        cluster_quality = {
+            "silhouette": float(silhouette_score(X_tr_red, y_tr_clust)),
+            "calinski_harabasz": float(calinski_harabasz_score(X_tr_red, y_tr_clust)),
+            "davies_bouldin": float(davies_bouldin_score(X_tr_red, y_tr_clust)),
+        }
+
     # Pick the target. If I supplied a real independent label, use it. Otherwise
     # fall back to the K-Means label — and note that this is the circular case:
     # the label is just a geometric partition of the features, so a flexible
@@ -119,11 +138,19 @@ def run_single_seed(design: pd.DataFrame, y_ext, cfg: Config, seed: int) -> dict
 
     metrics = M.compute_metrics_all(y_te, y_pred, proba, classes)
 
+    # Train-set accuracy too, so we can report the train-vs-test gap (an
+    # over-fitting check). `accuracy` in `metrics` is the test-set figure.
+    from sklearn.metrics import accuracy_score
+    train_accuracy = float(accuracy_score(y_tr, clf.predict(X_clf_tr)))
+    cluster_quality["train_accuracy"] = train_accuracy
+    cluster_quality["train_test_gap"] = train_accuracy - float(metrics.get("accuracy", float("nan")))
+
     return {
         "seed": seed,
         "target": target_name,
         "k": cluster_info["k"],
         "metrics": metrics,
+        "cluster_quality": cluster_quality,
         "confusion": M.confusion(y_te, y_pred),
         "per_class": M.per_class_metrics(y_te, y_pred),
         "cluster_info": cluster_info,
@@ -139,7 +166,7 @@ def run_experiment(design: pd.DataFrame, y_ext, cfg: Config) -> dict:
         print(f"[run {i}/{len(cfg.experiment.seeds)}] seed={seed} ...", flush=True)
         res = run_single_seed(design, y_ext, cfg, seed)
         rows.append({"run": i, "seed": seed, "target": res["target"],
-                     "k": res["k"], **res["metrics"]})
+                     "k": res["k"], **res["metrics"], **res["cluster_quality"]})
         confusions.append({"run": i, "seed": seed, "confusion": res["confusion"]})
         per_class_frames.append(res["per_class"].assign(run=i, seed=seed))
 
@@ -208,7 +235,7 @@ def _make_plots(summary: pd.DataFrame, cfg: Config) -> None:
     ax.grid(True, alpha=0.3)
     ax.legend()
     fig.tight_layout()
-    path = cfg.experiment.output_dir / "learning_curve.png"
+    path = cfg.experiment.output_dir / f"learning_curve_wave{cfg.data.wave}.png"
     fig.savefig(path, dpi=120)
     plt.close(fig)
     print(f"Saved plot    -> {path}")

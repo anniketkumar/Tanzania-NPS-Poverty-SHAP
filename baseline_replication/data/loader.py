@@ -19,6 +19,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import feature_spec as fs
+from .harmonize import harmonize_wave
 
 
 def _household_dir(converted_data_dir: Path, wave: int) -> Path:
@@ -55,6 +56,19 @@ def load_wave_features(
     # ---- Section A (household level) ------------------------------------- #
     sec_a = _read_section(hh_dir, "A")
     a_cols = [hhid] + [f.column for f in sections.get("A", []) if f.column in sec_a.columns]
+
+    # rural/urban fallback: the feature spec points at `clustertype` (the W4
+    # source), but that column only exists in W4. For W3/W5 fall back to the
+    # wave's own y{wave}_rural column. Whichever we pick gets renamed to
+    # `rural_urban` below; harmonize_wave() then normalizes the codes.
+    rural_src = None
+    if "clustertype" in sec_a.columns and sec_a["clustertype"].notna().any():
+        rural_src = "clustertype"
+    elif f"y{wave}_rural" in sec_a.columns and sec_a[f"y{wave}_rural"].notna().any():
+        rural_src = f"y{wave}_rural"
+    if rural_src and rural_src not in a_cols:
+        a_cols.append(rural_src)
+
     base = sec_a[list(dict.fromkeys(a_cols))].drop_duplicates(subset=hhid).copy()
 
     # ---- Individual-level sections (B, C): keep the head of household ----- #
@@ -96,10 +110,18 @@ def load_wave_features(
     rename = {f.column: f.name for f in fs.ALL_FEATURES if f.column in base.columns}
     base = base.rename(columns=rename)
 
-    # In wave 4 the rural/urban info lives in `clustertype` (1=rural, 2=urban);
-    # the feature spec points there, so by now it's already renamed to
-    # rural_urban. Keep the household id around too, for any later joins.
+    # The rename above catches clustertype -> rural_urban (W4). For W3/W5 the
+    # fallback column (y{wave}_rural) isn't in the spec, so rename it here.
+    if rural_src and rural_src != "clustertype" and rural_src in base.columns:
+        base = base.rename(columns={rural_src: "rural_urban"})
+
+    # Keep the household id around too, for any later joins.
     base = base.rename(columns={hhid: "hhid"})
+
+    # ---- Harmonize per-wave value codes --------------------------------- #
+    # W3 water_source / lighting_fuel / rural_urban get remapped to the W4/W5
+    # reference scheme here; W4/W5 are identity. See harmonize.py.
+    base = harmonize_wave(base, wave)
 
     # Put the columns in a predictable order: id first, then household_size,
     # then the rest of the features in the order they appear in the spec.

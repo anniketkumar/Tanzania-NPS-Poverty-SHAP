@@ -24,7 +24,7 @@ class SHAPConfig:
     """Everything the SHAP layer needs on top of the baseline pipeline."""
 
     # --- what to explain -------------------------------------------------- #
-    wave: int = 4                       # NPS wave to explain (4 or 5)
+    wave: int = 4                       # NPS wave to explain (3, 4 or 5)
     seed: int = 42                      # single seed: SHAP needs ONE fitted model
 
     # --- SHAP compute budget --------------------------------------------- #

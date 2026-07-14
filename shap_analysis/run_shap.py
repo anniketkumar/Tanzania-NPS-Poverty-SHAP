@@ -36,7 +36,7 @@ _GEO_FEATURES = ["region", "rural_urban"]
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Zone-stratified SHAP for the poverty model.")
-    p.add_argument("--wave", type=int, default=4, choices=[4, 5])
+    p.add_argument("--wave", type=int, default=4, choices=[3, 4, 5])
     p.add_argument("--seed", type=int, default=None, help="Single seed for the fitted model.")
     p.add_argument("--full", action="store_true",
                    help="Explain EVERY household (slow; default samples per zone).")
