@@ -9,9 +9,17 @@ Each entry maps to a real column I confirmed in the wave-4/5 household files
 names, so one table covers both; only the id columns (y4_/y5_ and
 indidy4/indidy5) differ, and those get swapped in when the data is loaded.
 
-`verify=True` marks features whose value codes changed between waves. They're
-fine for a single-wave run (which is what I'm doing), but I'd need to remap
-their codes before mixing waves together.
+Waves 1 and 2 use different column prefixes (sbq*/scq*/sjq* for W1, hh_j* for
+W2 housing). The translation from these wave-specific column names to the
+canonical W4 names listed here is handled by ``wave_config.py``; this spec
+table itself stays in W4 terms.
+
+``child_stool_disposal`` (hh_i15) does not exist in W1/W2 — the question was
+not part of those questionnaires. wave_config.py maps it to None so the loader
+skips it cleanly.
+
+`verify=True` marks features whose value codes changed between waves. The
+recodes are applied in ``harmonize.py`` after column renaming.
 """
 
 from __future__ import annotations
@@ -72,7 +80,8 @@ HOUSING = [
     # (9=TORCH, 10=OTHER). Was NOT flagged; W3 gets a 9<->10 swap in harmonize.py.
     FeatureSpec("lighting_fuel", "I", "hh_i17", "categorical", verify=True),
     FeatureSpec("electricity_source", "I", "hh_i18", "categorical",
-                "structurally missing (~30-62%; W3 is worst at 72.6%); relies on KNN imputation"),
+                "structurally missing: W1=78.2%, W2=75.1%, W3=72.6%, W4=61.6%, W5~30%; "
+                "monotone ↓ missingness confounds electrification trend (§6.2 caveat)"),
     # W3 uses a 14-category access taxonomy vs W4/W5's 12-category source taxonomy.
     # harmonize.py remaps W3 -> the W4/W5 reference scheme (crosswalk approved
     # 2026-07-14; see Week4_Harmonization_Crosswalk.md).
@@ -89,10 +98,11 @@ GEOGRAPHIC = [
     #   W4 -> clustertype (1=RURAL, 2=URBAN); its y4_rural is 100% missing.
     #   W3 -> y3_rural (0=URBAN, 1=RURAL) -- canonicalized to 1=RURAL,2=URBAN.
     #   W5 -> y5_rural (1=RURAL, 2=URBAN).
-    # The `column` here is the W4 source; the loader adds the W3/W5 fallback and
-    # harmonize.py normalizes the codes. (Before Week 4 this was dropped in W3/W5.)
+    #   W2 -> y2_rural (0=urban, 1=rural) -- same scheme as W3.
+    #   W1 -> locality (1=Rural, 2=Urban, 3=Mixture) -- 3 mapped to 2 (Urban).
+    # The `column` here is the W4 source; wave_config.rural_src handles the rest.
     FeatureSpec("rural_urban", "A", "clustertype", "categorical",
-                "loader fallback to y{wave}_rural; codes normalized in harmonize.py"),
+                "wave_config.rural_src per wave; codes normalized in harmonize.py"),
 ]
 
 # household_size is computed (count of Section B members per household), not read

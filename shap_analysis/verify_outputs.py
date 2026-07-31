@@ -1,7 +1,7 @@
 """Step-4 sanity check: internal consistency + SHAP additivity.
 
-Run AFTER `run_shap.py` has produced the wave-3/4/5 artifacts. It re-derives the
-model deterministically (seed 42, same as the deliverable run) and checks:
+Run AFTER `run_shap.py` has produced wave artifacts. Auto-detects which waves
+(1–5) have outputs and checks each one:
 
   (a) every zone_importance_*.xlsx carries an `n_households` column and no zone
       fell below the requested per-zone cap;
@@ -109,8 +109,14 @@ def check_wave(wave: int) -> dict:
 
 
 def main() -> int:
+    all_waves = [1, 2, 3, 4, 5]
+    found = [w for w in all_waves
+             if (OD / f"zone_importance_wave{w}.xlsx").is_file()]
+    if not found:
+        print("No SHAP outputs found. Run run_shap.py first.")
+        return 1
     all_ok = True
-    for wave in (3, 4, 5):
+    for wave in found:
         r = check_wave(wave)
         print(f"\n===== Wave {wave} =====")
         print(f"  n_households per zone (main):  {r.get('main_n_per_zone')}")

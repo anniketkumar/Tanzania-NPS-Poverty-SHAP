@@ -5,10 +5,14 @@ Run it from the project root (the folder that holds `baseline_replication/`):
     python -m baseline_replication.run_baseline --wave 4
     python -m baseline_replication.run_baseline --wave 5 --k 2
     python -m baseline_replication.run_baseline --wave 4 --seeds 5     # quick 5-seed run
+    python -m baseline_replication.run_baseline --wave 1              # Wave 1 (2008/09)
 
-The data loading is wired up for Waves 3, 4 and 5. Wave 3 value codes are
-harmonized to the W4/W5 reference scheme in `data/harmonize.py`. Each wave writes
-to its own output files (experimental_summary_wave{N}.xlsx / learning_curve_wave{N}.png).
+All five NPS waves (1–5) are supported. Waves 1 and 2 use different column
+prefixes and file layouts, handled by `data/wave_config.py`. Value codes for
+all waves are harmonized to the W4/W5 reference scheme in `data/harmonize.py`.
+Each wave writes to its own output files (experimental_summary_wave{N}.xlsx).
+
+Note: Waves 1 and 2 have 17 features (child_stool_disposal was not asked).
 """
 
 from __future__ import annotations
@@ -23,7 +27,7 @@ from .pipeline import run_experiment
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Baseline poverty-clustering pipeline.")
-    p.add_argument("--wave", type=int, default=4, choices=[3, 4, 5])
+    p.add_argument("--wave", type=int, default=4, choices=[1, 2, 3, 4, 5])
     p.add_argument("--reducer", default=None,
                    choices=["pca", "none"],
                    help="Override the reduction method (pca, or none to skip it).")

@@ -1,15 +1,18 @@
 """Build one household-level table by joining the raw survey CSVs together.
 
-The survey splits data across sections (A, B, C, I) in separate files. This
+The survey splits data across sections (A, B, C, I/J) in separate files. This
 module joins them on the household id, keeps just the head-of-household row from
 the person-level sections, counts household members to get household_size, and
-for wave 4 recovers rural/urban from the `clustertype` column (its dedicated
-column is empty there). What comes out is one row per household, with columns
-renamed to my feature names but still holding the raw survey codes — the
-one-hot encoding happens later in encode.py.
+recovers rural/urban from the wave-appropriate column. What comes out is one row
+per household, with columns renamed to the canonical feature names but still
+holding the raw survey codes — the one-hot encoding happens later in encode.py.
 
-I kept this explicit and free of side effects because it's the part I'll most
-likely tweak when adapting to a different set of features.
+Wave-specific file paths, column names, and ID columns are configured in
+``wave_config.py`` so this loader stays clean of per-wave if/else branches.
+
+History:
+  * Week 4 (2026-07-14): W3 support via harmonize.py + rural_urban recovery.
+  * Week 5-6 (2026-07-24): W1/W2 support via wave_config.py + extended harmonize.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import pandas as pd
 
 from . import feature_spec as fs
 from .harmonize import harmonize_wave
+from .wave_config import get_wave_config, WaveConfig
 
 
 def _household_dir(converted_data_dir: Path, wave: int) -> Path:
@@ -32,13 +36,59 @@ def _household_dir(converted_data_dir: Path, wave: int) -> Path:
     return d
 
 
-def _read_section(hh_dir: Path, section: str) -> pd.DataFrame:
-    path = hh_dir / f"HH_SEC_{section}.csv"
+def _read_section(hh_dir: Path, section: str, wc: WaveConfig) -> pd.DataFrame:
+    """Read a section CSV, using the wave-specific filename from WaveConfig."""
+    filename = wc.section_files[section]
+    path = hh_dir / filename
     if not path.is_file():
         raise FileNotFoundError(f"Missing section file: {path}")
     # utf-8-sig strips the byte-order mark some of these converted CSVs start
     # with; low_memory=False stops pandas complaining about mixed-type columns.
     return pd.read_csv(path, low_memory=False, encoding="utf-8-sig")
+
+
+def _resolve_column(canonical: str, wc: WaveConfig) -> str | None:
+    """Map a canonical W4 column name to the actual name in this wave.
+
+    Returns ``None`` if the feature does not exist in this wave (e.g.
+    hh_i15 / child_stool_disposal in W1/W2).
+    Returns the canonical name unchanged for W3–5 (empty column_map).
+    """
+    if not wc.column_map:
+        # W3–5: identity mapping
+        return canonical
+    return wc.column_map.get(canonical, canonical)
+
+
+def _actual_columns_for_section(
+    specs: list[fs.FeatureSpec], wc: WaveConfig, df_columns: list[str]
+) -> list[str]:
+    """Return the list of actual column names present in `df` for a section's specs."""
+    result = []
+    for spec in specs:
+        actual = _resolve_column(spec.column, wc)
+        if actual is not None and actual in df_columns:
+            result.append(actual)
+    return result
+
+
+def _build_rename_map(wc: WaveConfig, present_columns: set[str]) -> dict[str, str]:
+    """Build {actual_column → feature_name} for all features present in the data.
+
+    For W3–5 (empty column_map) this is just {spec.column: spec.name}.
+    For W1/W2 it maps the wave-specific column name to the feature name.
+    """
+    rename = {}
+    for spec in fs.ALL_FEATURES:
+        actual = _resolve_column(spec.column, wc)
+        if actual is not None and actual in present_columns:
+            rename[actual] = spec.name
+    return rename
+
+
+# Cache of already-read DataFrames per physical file, to avoid reading the W1
+# merged file twice (once for "B" and once for "C").
+_section_cache: dict[str, pd.DataFrame] = {}
 
 
 def load_wave_features(
@@ -48,21 +98,35 @@ def load_wave_features(
 ) -> pd.DataFrame:
     """Return a one-row-per-household DataFrame of raw (un-encoded) features."""
     hh_dir = _household_dir(converted_data_dir, wave)
-    hhid = f"y{wave}_hhid"
-    indid = f"indidy{wave}"
+    wc = get_wave_config(wave)
+    hhid = wc.hhid
+    indid = wc.indid
 
     sections = fs.features_by_section()
 
-    # ---- Section A (household level) ------------------------------------- #
-    sec_a = _read_section(hh_dir, "A")
-    a_cols = [hhid] + [f.column for f in sections.get("A", []) if f.column in sec_a.columns]
+    # Clear the section cache at the start of each wave load.
+    _section_cache.clear()
 
-    # rural/urban fallback: the feature spec points at `clustertype` (the W4
-    # source), but that column only exists in W4. For W3/W5 fall back to the
-    # wave's own y{wave}_rural column. Whichever we pick gets renamed to
-    # `rural_urban` below; harmonize_wave() then normalizes the codes.
+    def _read_cached(section: str) -> pd.DataFrame:
+        """Read a section, caching by physical filename to avoid double reads."""
+        filename = wc.section_files[section]
+        if filename not in _section_cache:
+            _section_cache[filename] = _read_section(hh_dir, section, wc)
+        return _section_cache[filename]
+
+    # ---- Section A (household level) ------------------------------------- #
+    sec_a = _read_cached("A")
+    a_specs = sections.get("A", [])
+    a_wanted = _actual_columns_for_section(a_specs, wc, list(sec_a.columns))
+    a_cols = [hhid] + a_wanted
+
+    # rural/urban recovery: use the wave_config's dedicated rural_src when set
+    # (W1: locality, W2: y2_rural, W3: y3_rural). For W4 the existing
+    # clustertype logic applies. For W5, y5_rural.
     rural_src = None
-    if "clustertype" in sec_a.columns and sec_a["clustertype"].notna().any():
+    if wc.rural_src and wc.rural_src in sec_a.columns and sec_a[wc.rural_src].notna().any():
+        rural_src = wc.rural_src
+    elif "clustertype" in sec_a.columns and sec_a["clustertype"].notna().any():
         rural_src = "clustertype"
     elif f"y{wave}_rural" in sec_a.columns and sec_a[f"y{wave}_rural"].notna().any():
         rural_src = f"y{wave}_rural"
@@ -76,8 +140,8 @@ def load_wave_features(
         specs = sections.get(sec_name, [])
         if not specs:
             continue
-        df = _read_section(hh_dir, sec_name)
-        wanted = [c for c in (f.column for f in specs) if c in df.columns]
+        df = _read_cached(sec_name)
+        wanted = _actual_columns_for_section(specs, wc, list(df.columns))
 
         if sec_name == "B":
             # Count members per household BEFORE I filter down to the head,
@@ -98,20 +162,20 @@ def load_wave_features(
         df = df.drop_duplicates(subset=hhid)[[hhid] + wanted]
         base = base.merge(df, on=hhid, how="left")
 
-    # ---- Housing (Section I, household level) ---------------------------- #
+    # ---- Housing (Section I/J, household level) -------------------------- #
     specs_i = sections.get("I", [])
     if specs_i:
-        sec_i = _read_section(hh_dir, "I")
-        wanted = [c for c in (f.column for f in specs_i) if c in sec_i.columns]
+        sec_i = _read_cached("I")
+        wanted = _actual_columns_for_section(specs_i, wc, list(sec_i.columns))
         sec_i = sec_i.drop_duplicates(subset=hhid)[[hhid] + wanted]
         base = base.merge(sec_i, on=hhid, how="left")
 
     # ---- Rename raw columns -> feature names ----------------------------- #
-    rename = {f.column: f.name for f in fs.ALL_FEATURES if f.column in base.columns}
+    rename = _build_rename_map(wc, set(base.columns))
     base = base.rename(columns=rename)
 
-    # The rename above catches clustertype -> rural_urban (W4). For W3/W5 the
-    # fallback column (y{wave}_rural) isn't in the spec, so rename it here.
+    # The rename above catches clustertype -> rural_urban (W4). For other waves
+    # the rural_src column isn't in the spec, so rename it here.
     if rural_src and rural_src != "clustertype" and rural_src in base.columns:
         base = base.rename(columns={rural_src: "rural_urban"})
 
@@ -119,8 +183,8 @@ def load_wave_features(
     base = base.rename(columns={hhid: "hhid"})
 
     # ---- Harmonize per-wave value codes --------------------------------- #
-    # W3 water_source / lighting_fuel / rural_urban get remapped to the W4/W5
-    # reference scheme here; W4/W5 are identity. See harmonize.py.
+    # W1/W2/W3 value codes get remapped to the W4/W5 reference scheme here;
+    # W4/W5 are identity. See harmonize.py.
     base = harmonize_wave(base, wave)
 
     # Put the columns in a predictable order: id first, then household_size,

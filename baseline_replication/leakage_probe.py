@@ -49,7 +49,7 @@ def _fit_clf(cfg, X_tr, y_tr, seed):
 
 def main():
     ap = argparse.ArgumentParser(description="Leakage / circularity probe.")
-    ap.add_argument("--wave", type=int, default=4, choices=[3, 4, 5])
+    ap.add_argument("--wave", type=int, default=4, choices=[1, 2, 3, 4, 5])
     args = ap.parse_args()
 
     cfg = default_config()
