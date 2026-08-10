@@ -1,10 +1,23 @@
 # Ignore everything at root level
 /*
 
-# Except these folders and .gitignore
+# Except these folders and files
 !/.gitignore
 !/baseline_replication/
 !/shap_analysis/
+
+# Week 7-8 deliverables
+!/README.md
+!/Final_Report.md
+!/app.py
+!/requirements_dashboard.txt
+
+# Weekly reports (already in repo)
+!/Baseline_Replication_Report.md
+!/Week3_SHAP_Audit_Report.md
+!/Week4_Wave3_Extension_Report.md
+!/Week4_Harmonization_Crosswalk.md
+!/Week5_6_Wave1_2_Extension_Report.md
 
 # Python bytecode
 __pycache__/

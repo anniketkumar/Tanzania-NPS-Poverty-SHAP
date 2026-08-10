@@ -1,0 +1,7 @@
+# Dashboard for the Tanzania NPS SHAP analysis.
+# Reads only from pre-computed output files — no ML recomputation.
+
+streamlit>=1.30
+pandas>=2.0
+openpyxl>=3.1
+plotly>=5.18
